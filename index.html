@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>İnek Yapboz Oyunu</title>
+  <style>
+    body {
+      display:flex; justify-content:center; align-items:center;
+      height:100vh; margin:0; background:#f0f0f0; font-family:Arial;
+    }
+    #gameContainer { display:flex; flex-direction:column; align-items:center; }
+    #game {
+      display:grid; gap:2px; margin-bottom:15px;
+    }
+    .piece {
+      cursor:pointer; border:1px solid #ccc;
+      background-size:cover;
+    }
+    #message, #startScreen {
+      display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,0.85);
+      color:white; font-size:1.5em;
+      justify-content:center; align-items:center; flex-direction:column;
+      text-align:center; padding:20px;
+    }
+    button { margin-top:15px; padding:10px 20px; font-size:1em; cursor:pointer; }
+    select { margin-top:15px; padding:8px; font-size:1em; }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="game"></div>
+    <!-- oyun ekranındaki yeniden başlat butonu -->
+    <button id="restartBtn" style="display:none;" onclick="goToMenu()">↩️ Yeniden Başlat</button>
+  </div>
+
+  <!-- Açılış ekranı -->
+  <div id="startScreen">
+    <h1>🐄 İnek Yapboz Oyunu 🧩</h1>
+    <p>Parçaları doğru sıraya koyarak sevimli ineği tamamla.<br>
+    Tamamladığında sürpriz seni bekliyor 🎶</p>
+    <label for="difficulty">Zorluk Seç:</label>
+    <select id="difficulty">
+      <option value="3">Kolay (3x3)</option>
+      <option value="4">Orta (4x4)</option>
+      <option value="5">Zor (5x5)</option>
+    </select><br>
+    <button onclick="startGame()">Başla</button>
+  </div>
+
+  <!-- Bitirme ekranı -->
+  <div id="message">
+    <div>🐄 Tebrikler! Yapbozu Tamamladınız 🐄</div>
+    <button onclick="restart()">Yeniden Başlat</button>
+  </div>
+
+  <!-- inek sesi -->
+  <audio id="mooSound" src="https://www.soundjay.com/animal/cow-moo1.mp3"></audio>
+
+  <script>
+    const imgUrl = "A_2D_digital_illustration_features_a_cartoon_cow_c.png"; // görseli aynı klasöre koy
+    const game = document.getElementById("game");
+    const message = document.getElementById("message");
+    const startScreen = document.getElementById("startScreen");
+    const mooSound = document.getElementById("mooSound");
+    const difficultySelect = document.getElementById("difficulty");
+    const restartBtn = document.getElementById("restartBtn");
+
+    let positions = [];
+    let gridSize = 3;
+
+    // oyunu başlat
+    function startGame(){
+      gridSize = parseInt(difficultySelect.value);
+      startScreen.style.display="none";
+      restartBtn.style.display="inline-block"; // oyun sırasında restart tuşu görünsün
+      init();
+    }
+
+    function init(){
+      positions = [];
+      game.innerHTML = "";
+      game.style.gridTemplateColumns = `repeat(${gridSize}, ${400/gridSize}px)`;
+      game.style.gridTemplateRows = `repeat(${gridSize}, ${400/gridSize}px)`;
+      game.style.width = "400px";
+      game.style.height = "400px";
+
+      for(let i=0;i<gridSize*gridSize;i++) positions.push(i);
+      shuffle(positions);
+
+      positions.forEach((pos,i)=>{
+        const piece = document.createElement("div");
+        piece.classList.add("piece");
+        let x = pos % gridSize;
+        let y = Math.floor(pos / gridSize);
+        piece.style.width = `${400/gridSize}px`;
+        piece.style.height = `${400/gridSize}px`;
+        piece.style.backgroundImage = `url(${imgUrl})`;
+        piece.style.backgroundSize = `${400}px ${400}px`;
+        piece.style.backgroundPosition = `-${x*(400/gridSize)}px -${y*(400/gridSize)}px`;
+        piece.dataset.correct = pos;
+        piece.draggable = true;
+        game.appendChild(piece);
+      });
+      enableDrag();
+    }
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+    }
+
+    function enableDrag(){
+      let dragged;
+      document.querySelectorAll(".piece").forEach(piece=>{
+        piece.addEventListener("dragstart",()=>dragged=piece);
+        piece.addEventListener("dragover",e=>e.preventDefault());
+        piece.addEventListener("drop",()=>{
+          if(dragged!==piece){
+            let bg1=dragged.style.backgroundPosition;
+            let bg2=piece.style.backgroundPosition;
+            let correct1=dragged.dataset.correct;
+            let correct2=piece.dataset.correct;
+            dragged.style.backgroundPosition=bg2;
+            piece.style.backgroundPosition=bg1;
+            dragged.dataset.correct=correct2;
+            piece.dataset.correct=correct1;
+          }
+          checkWin();
+        });
+      });
+    }
+
+    function checkWin(){
+      const pieces=document.querySelectorAll(".piece");
+      let win=true;
+      pieces.forEach((p,i)=>{
+        if(p.dataset.correct!=i) win=false;
+      });
+      if(win){
+        mooSound.play();
+        message.style.display="flex";
+      }
+    }
+
+    function restart(){
+      message.style.display="none";
+      goToMenu();
+    }
+
+    function goToMenu(){
+      game.innerHTML = "";
+      restartBtn.style.display="none"; // oyun ekranındaki restart gizlensin
+      startScreen.style.display="flex"; // menüye dön
+    }
+
+    // başta menü açılıyor
+    startScreen.style.display="flex";
+  </script>
+</body>
+</html>
